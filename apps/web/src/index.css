@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-cream: #FAF8F1;
+  --color-cream-dark: #F0EDE4;
+  --color-ink: #2C2C2C;
+  --color-ink-light: #5A5A5A;
+  --color-ink-muted: #8B8B8B;
+  --color-accent: #8B7355;
+  --color-accent-light: #A8936F;
+  --color-accent-dark: #6B5740;
+  --color-border: #D4CFC4;
+  --color-border-light: #E8E4DC;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "Courier Prime", "Courier New", monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-cream);
+  }
+}
