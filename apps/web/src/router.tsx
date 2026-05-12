@@ -23,10 +23,16 @@ const rootRoute = createRootRoute({
   notFoundComponent: NotFoundPage,
 })
 
+const aboutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/home',
+  component: HomePage,
+})
+
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: HomePage,
+  component: BlogListingPage,
 })
 
 const blogListRoute = createRoute({
@@ -34,7 +40,6 @@ const blogListRoute = createRoute({
   path: '/blog',
   component: BlogListingPage,
 })
-
 const blogDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/blog/$slug',
@@ -64,6 +69,7 @@ const routeTree = rootRoute.addChildren([
   blogDetailRoute,
   editorRoute,
   loginRoute,
+  aboutRoute
 ])
 
 export const router = createRouter({ routeTree })
