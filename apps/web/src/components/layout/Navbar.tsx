@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
-  { to: '/' as const, label: 'Home' },
+  { to: '/home' as const, label: 'Home' },
   { to: '/blog' as const, label: 'Blog' },
 ]
 
