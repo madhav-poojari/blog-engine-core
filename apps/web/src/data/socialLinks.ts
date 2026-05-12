@@ -1,4 +1,4 @@
-import { Github, Linkedin, Twitter, Mail, type LucideIcon } from 'lucide-react'
+import { Github, Linkedin, Mail, type LucideIcon } from 'lucide-react'
 
 export interface SocialLink {
   name: string
