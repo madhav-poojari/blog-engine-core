@@ -1,26 +1,36 @@
 package service
 
 import (
-	"context"
+	"crypto/subtle"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/typewriter-blog/api/internal/model"
-	"github.com/typewriter-blog/api/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// AuthService authenticates the single admin.
+//
+// Credentials come from configuration rather than a database: there is no
+// database any more, and the content repo is the only durable state. This also
+// removes the old seeding footgun, where changing ADMIN_PASSWORD had no effect
+// once the admin row existed.
 type AuthService struct {
-	repo      *repository.AdminRepository
-	jwtSecret []byte
+	admin        model.Admin
+	passwordHash []byte
+	jwtSecret    []byte
 }
 
-func NewAuthService(repo *repository.AdminRepository, jwtSecret string) *AuthService {
+func NewAuthService(username, passwordHash, jwtSecret string) *AuthService {
 	return &AuthService{
-		repo:      repo,
-		jwtSecret: []byte(jwtSecret),
+		admin: model.Admin{
+			ID:        "admin",
+			Username:  username,
+			CreatedAt: time.Time{},
+		},
+		passwordHash: []byte(passwordHash),
+		jwtSecret:    []byte(jwtSecret),
 	}
 }
 
@@ -29,49 +39,21 @@ type LoginResult struct {
 	Admin model.Admin `json:"admin"`
 }
 
-func (s *AuthService) Login(ctx context.Context, username, password string) (*LoginResult, error) {
-	admin, err := s.repo.GetByUsername(ctx, username)
-	if err != nil {
-		return nil, fmt.Errorf("lookup admin: %w", err)
-	}
-	if admin == nil {
+func (s *AuthService) Login(username, password string) (*LoginResult, error) {
+	// Compare the username in constant time and always run bcrypt, so a wrong
+	// username and a wrong password take the same path.
+	userMatch := subtle.ConstantTimeCompare([]byte(username), []byte(s.admin.Username)) == 1
+	passErr := bcrypt.CompareHashAndPassword(s.passwordHash, []byte(password))
+
+	if !userMatch || passErr != nil {
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(password)); err != nil {
-		return nil, fmt.Errorf("invalid credentials")
-	}
-
-	token, err := s.generateToken(admin.ID, admin.Username)
+	token, err := s.generateToken(s.admin.ID)
 	if err != nil {
 		return nil, fmt.Errorf("generate token: %w", err)
 	}
-
-	return &LoginResult{Token: token, Admin: *admin}, nil
-}
-
-// SeedAdmin creates the admin account if it doesn't exist.
-func (s *AuthService) SeedAdmin(ctx context.Context, username, password string) error {
-	existing, err := s.repo.GetByUsername(ctx, username)
-	if err != nil {
-		return err
-	}
-	if existing != nil {
-		return nil // already seeded
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("hash password: %w", err)
-	}
-
-	admin := &model.Admin{
-		ID:           uuid.New().String(),
-		Username:     username,
-		PasswordHash: string(hash),
-		CreatedAt:    time.Now().UTC(),
-	}
-	return s.repo.Create(ctx, admin)
+	return &LoginResult{Token: token, Admin: s.admin}, nil
 }
 
 // ValidateToken parses and validates a JWT token string.
@@ -93,7 +75,7 @@ func (s *AuthService) ValidateToken(tokenStr string) (*jwt.RegisteredClaims, err
 	return claims, nil
 }
 
-func (s *AuthService) generateToken(userID, username string) (string, error) {
+func (s *AuthService) generateToken(userID string) (string, error) {
 	claims := &jwt.RegisteredClaims{
 		Subject:   userID,
 		Issuer:    "typewriter-blog",

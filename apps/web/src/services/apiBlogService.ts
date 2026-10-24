@@ -1,9 +1,10 @@
-import type { BlogService, Blog, BlogCreateInput, BlogUpdateInput } from './blogService'
+import type { BlogService, Blog, TagCount } from './blogService'
 import { api } from '@/lib/api'
 
 export const apiBlogService: BlogService = {
-  async getBlogs(): Promise<Blog[]> {
-    return api.get<Blog[]>('/blogs')
+  async getBlogs(tag?: string): Promise<Blog[]> {
+    const query = tag ? `?tag=${encodeURIComponent(tag)}` : ''
+    return api.get<Blog[]>(`/blogs${query}`)
   },
 
   async getBlogBySlug(slug: string): Promise<Blog | null> {
@@ -17,16 +18,7 @@ export const apiBlogService: BlogService = {
     }
   },
 
-  async createBlog(input: BlogCreateInput): Promise<Blog> {
-    return api.post<Blog>('/blogs', input)
-  },
-
-  async updateBlog(input: BlogUpdateInput): Promise<Blog> {
-    const { id, ...data } = input
-    return api.put<Blog>(`/blogs/${encodeURIComponent(id)}`, data)
-  },
-
-  async deleteBlog(id: string): Promise<void> {
-    return api.delete(`/blogs/${encodeURIComponent(id)}`)
+  async getTags(): Promise<TagCount[]> {
+    return api.get<TagCount[]>('/tags')
   },
 }

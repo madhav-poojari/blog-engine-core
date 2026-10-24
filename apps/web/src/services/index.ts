@@ -1,7 +1,6 @@
 import type { BlogService } from './blogService'
-import { mockBlogService } from './mockBlogService'
 import { apiBlogService } from './apiBlogService'
 
-// Use the real API service when VITE_API_URL is set, otherwise fall back to mock data.
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
-export const blogService: BlogService = useMock ? mockBlogService : apiBlogService
+// Posts come from the content repo via the API. The old mock service is gone:
+// pointing VITE_API_URL at a locally running API is the way to work offline.
+export const blogService: BlogService = apiBlogService

@@ -1,16 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { blogService } from '@/services'
-import type { BlogCreateInput, BlogUpdateInput } from '@/types/blog'
 
 const BLOG_KEYS = {
   all: ['blogs'] as const,
+  list: (tag?: string) => ['blogs', 'list', tag ?? ''] as const,
   detail: (slug: string) => ['blogs', slug] as const,
+  tags: ['tags'] as const,
 }
 
-export function useBlogs() {
+export function useBlogs(tag?: string) {
   return useQuery({
-    queryKey: BLOG_KEYS.all,
-    queryFn: () => blogService.getBlogs(),
+    queryKey: BLOG_KEYS.list(tag),
+    queryFn: () => blogService.getBlogs(tag),
   })
 }
 
@@ -22,35 +23,9 @@ export function useBlog(slug: string) {
   })
 }
 
-export function useCreateBlog() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (input: BlogCreateInput) => blogService.createBlog(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BLOG_KEYS.all })
-    },
-  })
-}
-
-export function useUpdateBlog() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (input: BlogUpdateInput) => blogService.updateBlog(input),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: BLOG_KEYS.all })
-      if (variables.id) {
-        queryClient.invalidateQueries({ queryKey: BLOG_KEYS.detail(variables.id) })
-      }
-    },
-  })
-}
-
-export function useDeleteBlog() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => blogService.deleteBlog(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BLOG_KEYS.all })
-    },
+export function useTags() {
+  return useQuery({
+    queryKey: BLOG_KEYS.tags,
+    queryFn: () => blogService.getTags(),
   })
 }

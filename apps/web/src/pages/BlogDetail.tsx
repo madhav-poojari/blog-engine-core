@@ -32,7 +32,7 @@ export function BlogDetailPage() {
           <p className="text-ink-muted font-mono mb-8">
             The post you're looking for doesn't exist or has been removed.
           </p>
-          <Link to="/blog">
+          <Link to="/">
             <Button variant="secondary">
               <ArrowLeft size={16} className="mr-2" />
               Back to all posts
@@ -47,7 +47,7 @@ export function BlogDetailPage() {
     <Container size="sm">
       {/* Back link */}
       <Link
-        to="/blog"
+        to="/"
         className="inline-flex items-center gap-1.5 text-ink-muted font-mono text-sm no-underline hover:text-ink transition-colors mb-8"
       >
         <ArrowLeft size={14} />
@@ -101,12 +101,12 @@ export function BlogDetailPage() {
 
       {/* Content */}
       <article>
-        <BlogContent content={blog.content} />
+        <BlogContent contentHtml={blog.contentHtml} />
       </article>
 
       {/* Bottom nav */}
       <div className="mt-16 pt-8 border-t border-border">
-        <Link to="/blog">
+        <Link to="/">
           <Button variant="ghost">
             <ArrowLeft size={16} className="mr-2" />
             Back to all posts

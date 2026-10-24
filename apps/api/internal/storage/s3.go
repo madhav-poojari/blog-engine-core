@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,11 +16,12 @@ import (
 )
 
 type S3Client struct {
-	client *s3.Client
-	bucket string
+	client    *s3.Client
+	bucket    string
+	publicURL string
 }
 
-func NewS3Client(endpoint, region, bucket, accessKey, secretKey string) (*S3Client, error) {
+func NewS3Client(endpoint, region, bucket, accessKey, secretKey, publicBaseURL string) (*S3Client, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
@@ -35,7 +37,7 @@ func NewS3Client(endpoint, region, bucket, accessKey, secretKey string) (*S3Clie
 		o.UsePathStyle = true
 	})
 
-	return &S3Client{client: client, bucket: bucket}, nil
+	return &S3Client{client: client, bucket: bucket, publicURL: strings.TrimRight(publicBaseURL, "/")}, nil
 }
 
 type UploadResult struct {
@@ -59,8 +61,13 @@ func (c *S3Client) Upload(ctx context.Context, reader io.Reader, contentType, or
 		return nil, fmt.Errorf("upload to s3: %w", err)
 	}
 
-	// Construct public URL
-	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", c.bucket, key)
+	// The public URL is configured, not inferred: Cloudflare R2 and other
+	// S3-compatible stores serve from their own domain, so assuming the AWS
+	// hostname returned a URL that did not resolve.
+	base := c.publicURL
+	if base == "" {
+		base = fmt.Sprintf("https://%s.s3.amazonaws.com", c.bucket)
+	}
 
-	return &UploadResult{URL: url, Key: key}, nil
+	return &UploadResult{URL: base + "/" + key, Key: key}, nil
 }

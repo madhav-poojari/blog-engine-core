@@ -4,101 +4,53 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/typewriter-blog/api/internal/content"
 	"github.com/typewriter-blog/api/internal/middleware"
-	"github.com/typewriter-blog/api/internal/model"
-	"github.com/typewriter-blog/api/internal/service"
 )
 
+// IndexSource hands out the current content snapshot.
+type IndexSource interface {
+	Index() *content.Index
+}
+
 type BlogHandler struct {
-	svc *service.BlogService
+	src IndexSource
 }
 
-func NewBlogHandler(svc *service.BlogService) *BlogHandler {
-	return &BlogHandler{svc: svc}
+func NewBlogHandler(src IndexSource) *BlogHandler {
+	return &BlogHandler{src: src}
 }
 
-// List returns all blogs. If the request has admin auth, private blogs are included.
+// List returns posts newest first, optionally filtered by ?tag=. Anonymous
+// callers only ever see the index's public view.
 func (h *BlogHandler) List(w http.ResponseWriter, r *http.Request) {
-	includePrivate := middleware.IsAdmin(r.Context())
-	blogs, err := h.svc.List(r.Context(), includePrivate)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list blogs")
-		return
-	}
-	writeJSON(w, http.StatusOK, blogs)
+	admin := middleware.IsAdmin(r.Context())
+	posts := h.src.Index().List(admin, r.URL.Query().Get("tag"))
+	writeJSON(w, http.StatusOK, posts)
 }
 
-// GetBySlug returns a single blog post by its slug.
+// GetBySlug returns a single post. A private post is a 404 for anonymous
+// callers rather than a 403, so its existence is not disclosed.
 func (h *BlogHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
-	blog, err := h.svc.GetBySlug(r.Context(), slug)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get blog")
-		return
-	}
-	if blog == nil {
+	admin := middleware.IsAdmin(r.Context())
+	post := h.src.Index().Get(chi.URLParam(r, "slug"), admin)
+	if post == nil {
 		writeError(w, http.StatusNotFound, "blog not found")
 		return
 	}
-	// Non-admin users can't view private posts
-	if blog.Visibility == "private" && !middleware.IsAdmin(r.Context()) {
-		writeError(w, http.StatusNotFound, "blog not found")
-		return
-	}
-	writeJSON(w, http.StatusOK, blog)
+	writeJSON(w, http.StatusOK, post)
 }
 
-// Create creates a new blog post. Requires admin auth.
-func (h *BlogHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var input model.BlogCreateInput
-	if err := decodeJSON(r, &input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	if input.Title == "" {
-		writeError(w, http.StatusBadRequest, "title is required")
-		return
-	}
-	if input.Visibility != "public" && input.Visibility != "private" {
-		writeError(w, http.StatusBadRequest, "visibility must be 'public' or 'private'")
-		return
-	}
-
-	blog, err := h.svc.Create(r.Context(), input)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create blog")
-		return
-	}
-	writeJSON(w, http.StatusCreated, blog)
+// Tags returns tag names with post counts, for the listing page's filters.
+func (h *BlogHandler) Tags(w http.ResponseWriter, r *http.Request) {
+	admin := middleware.IsAdmin(r.Context())
+	writeJSON(w, http.StatusOK, h.src.Index().Tags(admin))
 }
 
-// Update updates an existing blog post. Requires admin auth.
-func (h *BlogHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	var input model.BlogUpdateInput
-	if err := decodeJSON(r, &input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	if input.Visibility != nil && *input.Visibility != "public" && *input.Visibility != "private" {
-		writeError(w, http.StatusBadRequest, "visibility must be 'public' or 'private'")
-		return
-	}
-
-	blog, err := h.svc.Update(r.Context(), id, input)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update blog")
-		return
-	}
-	writeJSON(w, http.StatusOK, blog)
-}
-
-// Delete deletes a blog post. Requires admin auth.
-func (h *BlogHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if err := h.svc.Delete(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete blog")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+// WriteNotSupported answers the old create/update/delete routes. Posts are
+// written by committing to the content repo; the admin editor returns in a
+// later phase as a commit through the GitHub API.
+func WriteNotSupported(w http.ResponseWriter, r *http.Request) {
+	writeError(w, http.StatusMethodNotAllowed,
+		"posts are managed in the content repository; commit a markdown file instead")
 }

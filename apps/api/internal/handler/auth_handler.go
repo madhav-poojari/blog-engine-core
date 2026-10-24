@@ -30,7 +30,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.svc.Login(r.Context(), req.Username, req.Password)
+	result, err := h.svc.Login(req.Username, req.Password)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return

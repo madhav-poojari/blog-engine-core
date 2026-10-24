@@ -46,7 +46,7 @@ export function HomePage() {
 
         {/* CTA */}
         <div className="text-center">
-          <Link to="/blog">
+          <Link to="/">
             <Button variant="primary" size="lg">
               Read the blog
               <ArrowRight size={18} className="ml-2" />

@@ -14,12 +14,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
 
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata git openssh-client
 
 WORKDIR /app
 
 COPY --from=builder /server .
-COPY migrations/ ./migrations/
 
 EXPOSE 8080
 

@@ -1,13 +1,13 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { Container } from '@/components/ui/Container'
-import { Menu, X, PenLine, LogIn, LogOut } from 'lucide-react'
+import { Menu, X, LogIn, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
   { to: '/home' as const, label: 'Home' },
-  { to: '/blog' as const, label: 'Blog' },
+  { to: '/' as const, label: 'Blog' },
 ]
 
 export function Navbar() {
@@ -47,13 +47,6 @@ export function Navbar() {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
-                <Link
-                  to="/admin/editor"
-                  className="inline-flex items-center gap-1.5 font-mono text-sm text-accent hover:text-accent-dark no-underline transition-colors"
-                >
-                  <PenLine size={14} />
-                  New Post
-                </Link>
                 <button
                   onClick={logout}
                   className="inline-flex items-center gap-1.5 font-mono text-sm text-ink-muted hover:text-ink cursor-pointer bg-transparent border-none p-0 transition-colors"
@@ -104,14 +97,6 @@ export function Navbar() {
               <li className="border-t border-border-light pt-4 mt-2">
                 {isAuthenticated ? (
                   <div className="flex flex-col gap-3">
-                    <Link
-                      to="/admin/editor"
-                      className="inline-flex items-center gap-1.5 font-mono text-sm text-accent no-underline"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      <PenLine size={14} />
-                      New Post
-                    </Link>
                     <button
                       onClick={() => { logout(); setMobileOpen(false) }}
                       className="inline-flex items-center gap-1.5 font-mono text-sm text-ink-muted cursor-pointer bg-transparent border-none p-0"
